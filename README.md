@@ -69,19 +69,3 @@ int main(void) {
 }
 
 ```
-
-
-# Expected Output: 
-
-=== AutoClean Demo ===
-Allocated buffer at 0x55a1c2b6b260: 'Hello AutoClean!'
-Allocated mmap memory at 0x7f9d3c400000
-Modified buffer and mmap memory
-Running AC_CleanupAll()
-Cleaning mmap memory at 0x7f9d3c400000
-Cleanup finished
-
-## Limitations
-- Maximum of 1024 tracked resources (`MAX_TRACKED_ALLOC`). Exceeding this causes `AC_Alloc` to fail and `AC_Register` to warn.
-- Not thread-safe (planned mutex support in future).
-- `NULL` pointers or cleanup functions are safely ignored by `AC_CleanupAll`.
