@@ -1,71 +1,101 @@
-# AutoClean (AC)
+## Autoclean
 
-A minimal **resource manager in C** for automatic cleanup of malloc, mmap, file descriptors, and other resources.  
+`autoclean.h` is a simple, thread-safe C library for automatic resource management. It provides a set of functions to automatically track and clean up dynamically allocated memory and other resources, which helps prevent memory leaks and simplifies resource management in multithreaded applications.
 
-Inspired by C++ destructors / scope-based cleanup patterns, AutoClean allows you to register resources with their cleanup functions, and automatically cleans them in **reverse order** when finished.
+### Features
+
+- **Automatic Memory Cleanup**: Easily allocate memory (`AC_Alloc`, `AC_ArrayAlloc`, `AC_Strdup`) that is automatically registered for cleanup.
+- **Generic Resource Management**: Register any resource with a custom cleanup function using `AC_Register`.
+- **Thread-Safe**: All core functions are protected by a mutex, making the library safe to use in multithreaded environments.
+- **Asynchronous Cleanup**: Perform a full cleanup of all tracked resources in a detached background thread.
+- **Built-in Logging**: A simple, thread-safe logging mechanism helps you track cleanup status.
 
 ---
 
-## Features
+### How It Works
 
-- Track `malloc` allocations automatically via `AC_Alloc`.
-- Track **any custom resource** using `AC_Register`.
-- FILO cleanup ensures the **last registered resource is cleaned first**, preventing leaks and respecting dependencies.
-- Minimal and portable C implementation.
+The library maintains a global, thread-safe list of pointers and their corresponding cleanup functions.
 
-Installation
+- When you call an allocation function, the returned pointer is added to this list with a default `free()` function.
+- When you use `AC_Register`, you add a custom pointer and a custom cleanup function.
+- When `AC_CleanupAll` is called, the library iterates through the list in reverse and executes the cleanup function for each item.
+- The `AC_Remove` function lets you manually clean up and remove a specific resource.
 
-Include autoclean.h and autoclean.c in your project:
+---
 
-```c```
-    #include "autoclean.h"
+### Usage
+
+#### 1. Include the Header
+
+```c
+#include "autoclean.h"
 ```
 
-## Usage Example
+#### 2. Allocating memory 
 
-```c```
+#### Use the provided functions as drop-in replacements for standard C library functions.
 
-#include "autoclean.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/mman.h>
+```c
+char *data = AC_Alloc(1024);
+int *numbers = AC_ArrayAlloc(100, sizeof(int));
+char *my_string = AC_Strdup("Hello, Autoclean!");
+```
 
-void mmap_cleanup(void *ptr) {
-    if (ptr) {
-        printf("Cleaning mmap memory at %p\n", ptr);
-        munmap(ptr, 4096);
+#### 3. Registering Custom Resources
+
+#### Use AC_Register to add a pointer to any resource along with a custom cleanup function.
+
+```c
+void close_file(void *ptr) {
+    FILE *fp = (FILE *)ptr;
+    if (fp) {
+        fclose(fp);
     }
 }
 
-int main(void) {
-    printf("=== AutoClean Demo ===\n");
-
-    // Allocate regular memory
-    char *buf = AC_Alloc(128);
-    if (!buf) return 1;
-    snprintf(buf, 128, "Hello AutoClean!");
-    printf("Allocated buffer at %p: '%s'\n", (void*)buf, buf);
-
-    // Allocate mmap memory and register custom cleanup
-    void *mem = mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
-    if (mem == MAP_FAILED) {
-        perror("mmap failed");
-        return 1;
-    }
-    AC_Register(mem, mmap_cleanup);
-    printf("Allocated mmap memory at %p\n", mem);
-
-    // Modify both resources
-    buf[0] = 'A';
-    ((char*)mem)[0] = 'M';
-    printf("Modified buffer and mmap memory\n");
-
-    // Cleanup all resources
-    printf("Running AC_CleanupAll()\n");
-    AC_CleanupAll();
-    printf("Cleanup finished\n");
-
-    return 0;
+FILE *file_handle = fopen("log.txt", "w");
+if (file_handle) {
+    AC_Register(file_handle, close_file);
 }
+```
 
+#### 4. Cleaning up
+
+#### You have two options for cleaning up all registered resources.
+
+##### Synchronous Cleanup (Blocking)
+```c
+AC_CleanupAll();
+```
+
+##### Asynchronous Cleanup (Non-Blocking)
+```c
+AC_CleanupAllAsync();
+```
+
+#### 5. Manual Removal
+
+#### If you need to free a specific resource before a full cleanup, use AC_Remove.
+
+```c
+if (AC_Remove(data)) {
+    printf("Successfully removed 'data' from the cleanup list and freed it.\n");
+}
+```
+
+#### 6. Flushing Logs
+
+#### To see log messages from the asynchronous cleanup thread, you need to flush the log buffer.
+
+```c
+AC_FlushLogs();
+```
+
+## Compilation
+
+### Since the library uses pthreads, its recommended to link with the pthread library.
+
+```bash
+gcc -c autoclean.c -o autoclean.o
+gcc your_program.c autoclean.o -o your_program -pthread
 ```

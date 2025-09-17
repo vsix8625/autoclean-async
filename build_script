@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-gcc -Wall -Werror -O3 autoclean.c main.c -o autoclean_demo
+gcc -Wall -Werror -O3 autoclean.c main.c -o autoclean_demo -pthread
+
