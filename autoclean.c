@@ -91,6 +91,23 @@ void AC_Register(void *ptr, AC_CleanupFn fn)
         pthread_mutex_unlock(&cleanup_lock);
         return;
     }
+
+    for (size_t i = 0; i < cleanup_count; ++i)
+    {
+        if (cleanup_list[i].ptr == ptr)
+        {
+            AsyncLogPush(&ac_log, "Warning: Pointer already registered.");
+            pthread_mutex_unlock(&cleanup_lock);
+            return;  // Exit without re-registering
+        }
+    }
+
+    if (!ac_ensure_capacity())
+    {
+        pthread_mutex_unlock(&cleanup_lock);
+        return;
+    }
+
     cleanup_list[cleanup_count++] = (AC_Entry) {ptr, fn};
     pthread_mutex_unlock(&cleanup_lock);
 }

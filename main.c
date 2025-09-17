@@ -42,6 +42,7 @@ int main(void)
     }
     AC_Register(mem, mmap_cleanup);
     printf("Allocated mmap memory at %p\n", mem);
+    AC_Register(mem, mmap_cleanup);
 
     // 4. Modify memory
     buf[0] = 'A';
