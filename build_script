@@ -1,7 +1,0 @@
-#!/usr/bin/env bash
-set -euo pipefail
-
-gcc -c -Wall -Werror -O3 autoclean.c -o obj/autoclean.c.o
-gcc -c -Wall -Werror -O3 main.c -o obj/main.c.o
-gcc obj/autoclean.c.o obj/main.c.o -o autoclean_demo -pthread
-
