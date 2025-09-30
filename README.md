@@ -25,7 +25,7 @@ The library maintains a global, thread-safe list of pointers and their correspon
 
 ### Usage
 
-#### 1. Include the Header
+#### 1. Include the Header and compile with `autoclean.c` in your project
 
 ```c
 #include "autoclean.h"
